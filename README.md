@@ -5,7 +5,7 @@
 ## Install
 
 ```shell
-    npm i
+npm i
 ```
 
 ## Setting up
