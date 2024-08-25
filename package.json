@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "pm2 start index.js --name server && pm2 save"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
