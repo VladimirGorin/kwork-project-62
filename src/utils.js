@@ -1,7 +1,7 @@
 import moment from "moment-timezone";
 import MailingTask from "./database/models/MailingTask.model.js";
 import Message from "./database/models/Message.model.js";
-import { generateWebAppUserKeyboard } from "./keyboards/user.keyboard.js";
+import { generateUserKeyboard } from "./keyboards/user.keyboard.js";
 import User from "./database/models/User.model.js";
 
 export async function generateMessage(type, msg, user) {
@@ -19,20 +19,25 @@ export async function generateMessage(type, msg, user) {
                     type: "message",
                 };
             } else {
-                const keyboard = generateWebAppUserKeyboard(startMessage.webAppURL);
+                const keyboard = generateUserKeyboard(
+                    startMessage.webAppURL,
+                    startMessage.channelURL
+
+                );
 
                 response = {
                     text: startMessage.caption,
                     keyboard,
+                    photo: startMessage.photo,
                     gif: startMessage.gif,
-                    type: "animation",
-                };
+                    type: startMessage.messageFormat,
+                }
             }
 
             break;
 
         default:
-            response = { text: `Generate message type is undefined` };
+            response = { text: `Не известный тип для генерации сообщения!` };
             break;
     }
 
@@ -46,6 +51,15 @@ export function exportWebAppURL(text) {
     const textWithoutWebapp = text.replace(pattern, "").trim();
 
     return { text: textWithoutWebapp, url: webAppValue.replace(" ") };
+}
+
+export function exportChannelURL(text) {
+    const pattern = /\[channel:(.*?)\]/;
+    const match = text.match(pattern);
+    const channelValue = match ? match[1] : null;
+    const textWithoutChannel = text.replace(pattern, "").trim();
+
+    return { text: textWithoutChannel, url: channelValue.replace(" ") };
 }
 
 export function exportScheduledTime(text) {
@@ -64,7 +78,7 @@ export function exportScheduledTime(text) {
         return null;
     }
 
-    return {time: date.format(), text: otherText};
+    return { time: date.format(), text: otherText };
 }
 
 export async function mailingAll(users, adminChatId, bot) {
@@ -73,16 +87,28 @@ export async function mailingAll(users, adminChatId, bot) {
             where: { messageType: "mailingAll" },
         });
 
-        const webAppKeyboard = generateWebAppUserKeyboard(
-            mailingAllMessage.webAppURL
+        const keyboard = generateUserKeyboard(
+            mailingAllMessage.webAppURL,
+            mailingAllMessage.channelURL
+
         );
 
         users.forEach((user) => {
             try {
-                bot.sendAnimation(user.chatId, mailingAllMessage?.gif, {
-                    caption: mailingAllMessage.caption,
-                    reply_markup: webAppKeyboard,
-                });
+                if (mailingAllMessage.messageFormat == "photo") {
+                    bot.sendPhoto(user.chatId, mailingAllMessage?.photo, {
+                        caption: mailingAllMessage.caption,
+                        reply_markup: keyboard,
+                    });
+                } else if (mailingAllMessage.messageFormat == "gif") {
+                    bot.sendAnimation(user.chatId, mailingAllMessage?.gif, {
+                        caption: mailingAllMessage.caption,
+                        reply_markup: keyboard,
+                    });
+                } else {
+                    throw Error("Не известный формат сообщения!")
+                }
+
             } catch (error) {
                 bot.sendMessage(
                     adminChatId,
@@ -107,15 +133,25 @@ export async function checkTasksForMailing(bot) {
         try {
             const users = await User.findAll();
 
-            const webAppKeyboard = generateWebAppUserKeyboard(
-                task.webAppURL
+            const keyboard = generateUserKeyboard(
+                task.webAppURL,
+                task.channelURL
             );
 
             users.forEach((user) => {
-                bot.sendAnimation(user.chatId, task?.gif, {
-                    caption: task.caption,
-                    reply_markup: webAppKeyboard,
-                });
+                if (task.messageFormat == "photo") {
+                    bot.sendPhoto(user.chatId, task?.photo, {
+                        caption: task.caption,
+                        reply_markup: keyboard,
+                    });
+                } else if (task.messageFormat == "gif") {
+                    bot.sendAnimation(user.chatId, task?.gif, {
+                        caption: task.caption,
+                        reply_markup: keyboard,
+                    });
+                } else {
+                    throw Error("Не известный формат сообщения!")
+                }
             });
         } catch (error) {
             const adminUsers = await User.findAll({ where: { isAdmin: true } });
@@ -130,6 +166,12 @@ export async function checkTasksForMailing(bot) {
 
     tasks.forEach((task) => {
         const taskDate = new Date(task.scheduledTime);
+        // console.log(now.getFullYear() === taskDate.getFullYear())
+        // console.log(now.getMonth() === taskDate.getMonth())
+        // console.log(now.getDate() === taskDate.getDate())
+        // console.log(now.getHours() === taskDate.getHours())
+        // console.log(now.getMinutes() === taskDate.getMinutes())
+
         if (
             now.getFullYear() === taskDate.getFullYear() &&
             now.getMonth() === taskDate.getMonth() &&

@@ -8,10 +8,13 @@ const Message = sequelize.define("message", {
     unique: true,
     autoIncrement: true,
   },
+  messageFormat: { type: DataTypes.STRING },
   messageType: { type: DataTypes.STRING },
   gif: { type: DataTypes.STRING },
+  photo: {type: DataTypes.STRING },
   caption: { type: DataTypes.STRING },
   webAppURL: { type: DataTypes.STRING },
+  channelURL: { type: DataTypes.STRING },
 });
 
 export default Message;

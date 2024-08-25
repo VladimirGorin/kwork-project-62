@@ -1,7 +1,8 @@
 import TelegramBot from "node-telegram-bot-api";
 import commands from "./src/commands/index.js";
 import { callbackQuery } from "./src/handlers/callbackQuery.handler.js";
-import { checkTasksForMailing, exportScheduledTime } from "./src/utils.js";
+import { checkTasksForMailing } from "./src/utils.js";
+import MailingTask from "./src/database/models/MailingTask.model.js";
 
 const token = process.env.TELEGRAM_TOKEN;
 
@@ -22,5 +23,19 @@ bot.on("callback_query", (msg) => {
 bot.on("polling_error", console.log);
 
 // Schedules
-setInterval(() => (checkTasksForMailing(bot)), 60 * 1000);
-checkTasksForMailing(bot)
+function startMailingCheckAtNewMinute() {
+    const now = new Date();
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000;
+    console.log(msUntilNextMinute)
+
+    setTimeout(() => {
+        checkTasksForMailing(bot); // Run once immediately when the minute changes
+
+        setInterval(() => {
+            checkTasksForMailing(bot);
+        }, 60 * 1000); // Then run every 60 seconds
+
+    }, msUntilNextMinute);
+}
+
+startMailingCheckAtNewMinute();

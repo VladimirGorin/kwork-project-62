@@ -32,6 +32,8 @@ export default async (bot, msg) => {
                         reply_markup: message?.keyboard,
                     });
                 }
+            } else if (message?.type == "photo") {
+                bot.sendPhoto(chatId, message?.photo, {caption: message?.text, reply_markup: message?.keyboard});
             } else if (message?.type == "message") {
                 bot.sendMessage(chatId, message?.text);
             } else {

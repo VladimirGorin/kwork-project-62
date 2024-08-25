@@ -8,10 +8,13 @@ const MailingTask = sequelize.define("mailingTask", {
     unique: true,
     autoIncrement: true,
   },
+  messageFormat: { type: DataTypes.STRING },
   gif: { type: DataTypes.STRING },
+  photo: { type: DataTypes.STRING },
   caption: { type: DataTypes.STRING },
   webAppURL: { type: DataTypes.STRING },
-  scheduledTime: { type: DataTypes.STRING }
+  channelURL: { type: DataTypes.STRING },
+  scheduledTime: { type: DataTypes.STRING },
 });
 
 export default MailingTask;

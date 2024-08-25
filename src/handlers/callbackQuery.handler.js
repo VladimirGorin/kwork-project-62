@@ -1,40 +1,81 @@
 import MailingTask from "../database/models/MailingTask.model.js";
 import Message from "../database/models/Message.model.js";
 import User from "../database/models/User.model.js";
-import { addMailingScheduleAdminKeyboard, changeMessagesAdminKeyboard } from "../keyboards/admin.keyboard.js";
-import { exportScheduledTime, exportWebAppURL, mailingAll } from "../utils.js";
+import {
+    addMailingScheduleAdminKeyboard,
+    changeMessagesAdminKeyboard,
+} from "../keyboards/admin.keyboard.js";
+import {
+    exportChannelURL,
+    exportScheduledTime,
+    exportWebAppURL,
+    mailingAll,
+} from "../utils.js";
 
 export async function callbackQuery(bot, msg) {
     const chatId = msg.from.id;
     const data = msg.data;
+
+    function inputMessageValidation(msg) {
+        const animation = msg?.animation;
+
+        const photo = msg?.photo;
+
+        if (!animation && !photo) {
+            throw Error("Вы не передали GIF или PHOTO!");
+        }
+
+        const caption = msg?.caption;
+
+        if (!caption) {
+            throw Error("Вы не передали Текст!");
+        }
+
+        const webAppURL = exportWebAppURL(caption);
+
+        if (!webAppURL.url) {
+            throw Error("Вы не передали webApp ссылку!");
+        }
+
+        const channelURL = exportChannelURL(webAppURL.text);
+
+        if (!channelURL.url) {
+            throw Error("Вы не передали ссылку на канал!");
+        }
+
+        const result = {
+            format: null,
+            photo: null,
+            gif: null,
+            caption: channelURL.text,
+            webAppURL: webAppURL.url,
+            channelURL: channelURL.url
+        };
+
+        if (photo) {
+            const photoId = photo[photo.length - 1].file_id
+            result.photo = photoId;
+            result.format = "photo"
+        } else if (animation) {
+            const animationId = msg?.animation?.file_id;
+            result.gif = animationId;
+            result.format = "gif"
+        } else {
+            throw Error("Не известный формат файла!");
+        }
+
+        return result
+    }
 
     switch (data) {
         case "mailing_all":
             async function mailingAllInput(msg) {
                 try {
                     if (msg.from.id != chatId) {
-                        return
+                        return;
                     }
 
-                    const animation = msg?.animation;
-                    const animationId = msg?.animation?.file_id;
-
-                    const caption = msg?.caption;
-
-                    if (!animation) {
-                        throw Error("Вы не передали GIF!");
-                    }
-
-                    if (!caption) {
-                        throw Error("Вы не передали Текст!");
-                    }
-
-
-                    const webAppURL = exportWebAppURL(caption);
-
-                    if (!webAppURL.url) {
-                        throw Error("Вы не передали webApp ссылку!");
-                    }
+                    const validData = inputMessageValidation(msg)
 
                     bot.removeListener("message", mailingAllInput);
 
@@ -43,17 +84,25 @@ export async function callbackQuery(bot, msg) {
                     });
 
                     if (!mailingAllMessages) {
-                        mailingAllMessages = await Message.create({
+                        await Message.create({
                             messageType: "mailingAll",
-                            webAppURL: webAppURL.url,
-                            gif: animationId,
-                            caption: webAppURL.text,
+                            messageFormat: validData.format,
+                            webAppURL: validData.webAppURL,
+                            channelURL: validData.channelURL,
+                            gif: validData.gif,
+                            photo: validData.photo,
+                            caption: validData.caption,
                         });
+
+
                     } else {
                         mailingAllMessages.update({
-                            webAppURL: webAppURL.url,
-                            gif: animationId,
-                            caption: webAppURL.text,
+                            messageFormat: validData.format,
+                            webAppURL: validData.webAppURL,
+                            channelURL: validData.channelURL,
+                            gif: validData.gif,
+                            photo: validData.photo,
+                            caption: validData.caption,
                         });
                     }
 
@@ -71,7 +120,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF\n-Текст\n-Ссылку на канал (указывается так же в месте с текстом)\n[webApp:ссылку на webApp]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[webApp:ссылку на webApp]\n[channel:ссылку на канал]"
             );
             // bot.sendAnimation(
             //     chatId,
@@ -95,26 +144,9 @@ export async function callbackQuery(bot, msg) {
             async function changeStartMessageInput(msg) {
                 try {
                     if (msg.from.id != chatId) {
-                        return
+                        return;
                     }
-                    const animation = msg?.animation;
-                    const animationId = msg?.animation?.file_id;
-
-                    const caption = msg?.caption;
-
-                    if (!animation) {
-                        throw Error("Вы не передали GIF!");
-                    }
-
-                    if (!caption) {
-                        throw Error("Вы не передали Текст!");
-                    }
-
-                    const webAppURL = exportWebAppURL(caption);
-
-                    if (!webAppURL.url) {
-                        throw Error("Вы не передали webApp ссылку!");
-                    }
+                    const validData = inputMessageValidation(msg)
 
                     bot.removeListener("message", changeStartMessageInput);
 
@@ -123,17 +155,23 @@ export async function callbackQuery(bot, msg) {
                     });
 
                     if (!startMessage) {
-                        startMessage = await Message.create({
+                        await Message.create({
                             messageType: "start",
-                            webAppURL: webAppURL.url,
-                            gif: animationId,
-                            caption: webAppURL.text,
+                            messageFormat: validData.format,
+                            webAppURL: validData.webAppURL,
+                            channelURL: validData.channelURL,
+                            gif: validData.gif,
+                            photo: validData.photo,
+                            caption: validData.caption,
                         });
                     } else {
                         startMessage.update({
-                            webAppURL: webAppURL.url,
-                            gif: animationId,
-                            caption: webAppURL.text,
+                            messageFormat: validData.format,
+                            webAppURL: validData.webAppURL,
+                            channelURL: validData.channelURL,
+                            gif: validData.gif,
+                            photo: validData.photo,
+                            caption: validData.caption,
                         });
                     }
 
@@ -149,7 +187,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF\n-Текст\n-Ссылку на канал (указывается так же в месте с текстом)\n[webApp:ссылку на webApp]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[webApp:ссылку на webApp]\n[channel:ссылку на канал]"
             );
 
             bot.on("message", changeStartMessageInput);
@@ -157,13 +195,12 @@ export async function callbackQuery(bot, msg) {
             break;
 
         case "mailing_schedule":
-
-            let mailingTasks = await MailingTask.findAll()
+            let mailingTasks = await MailingTask.findAll();
             if (mailingTasks.length) {
-                mailingTasks = mailingTasks.map(task => `ID: ${task.id}`)
-                mailingTasks = mailingTasks.join("\n")
+                mailingTasks = mailingTasks.map((task) => `ID: ${task.id}`);
+                mailingTasks = mailingTasks.join("\n");
             } else {
-                mailingTasks = "0 задач"
+                mailingTasks = "0 задач";
             }
 
             bot.sendMessage(chatId, `Статус:\n${mailingTasks}`, {
@@ -175,40 +212,28 @@ export async function callbackQuery(bot, msg) {
             async function addMailingScheduleInput(msg) {
                 try {
                     if (msg.from.id != chatId) {
-                        return
-                    }
-                    const animation = msg?.animation;
-                    const animationId = msg?.animation?.file_id;
-
-                    const caption = msg?.caption;
-
-                    if (!animation) {
-                        throw Error("Вы не передали GIF!");
+                        return;
                     }
 
-                    if (!caption) {
-                        throw Error("Вы не передали Текст!");
-                    }
+                    const validData = inputMessageValidation(msg)
 
-                    const webAppURL = exportWebAppURL(caption);
-
-                    if (!webAppURL.url) {
-                        throw Error("Вы не передали webApp ссылку!");
-                    }
-
-                    const scheduledTime = exportScheduledTime(webAppURL.text);
+                    const scheduledTime = exportScheduledTime(validData.caption);
 
                     if (!scheduledTime) {
                         throw Error("Вы не передали scheduledTime!");
                     }
+
                     bot.removeListener("message", addMailingScheduleInput);
 
                     const newTask = await MailingTask.create({
-                        webAppURL: webAppURL.url,
-                        gif: animationId,
+                        messageFormat: validData.format,
+                        webAppURL: validData.webAppURL,
+                        channelURL: validData.channelURL,
+                        gif: validData.gif,
+                        photo: validData.photo,
                         caption: scheduledTime.text,
-                        scheduledTime: scheduledTime.time
-                    })
+                        scheduledTime: scheduledTime.time,
+                    });
 
                     await bot.sendMessage(
                         chatId,
@@ -222,7 +247,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF\n-Текст\n-Ссылку на канал (указывается так же в месте с текстом)\n[webApp:ссылку на webApp]\n[scheduledTime:2024-08-23 14:30:00]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[webApp:ссылку на webApp]\n[channel:ссылку на канал]\n[scheduledTime:2024-08-23 14:30:00]"
             );
 
             bot.on("message", addMailingScheduleInput);
