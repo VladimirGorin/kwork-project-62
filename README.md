@@ -34,5 +34,6 @@ npm start
 1) Login in your server
 2) Install the nodejs AND docker
 3) Clone the repo and install modules
-4) Run the docker compose
-5) Run bot using production mode
+4) Setting up your data
+5) Run the docker compose
+6) Run bot using production mode
