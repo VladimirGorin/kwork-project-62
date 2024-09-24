@@ -19,14 +19,10 @@ export async function generateMessage(type, msg, user) {
                     type: "message",
                 };
             } else {
-                const keyboard = generateUserKeyboard(
-                    startMessage.webAppURL,
-                    startMessage.channelURL
-
-                );
+                const keyboard = generateUserKeyboard(startMessage?.keyboards);
 
                 response = {
-                    text: startMessage.caption,
+                    text: startMessage.text,
                     keyboard,
                     photo: startMessage.photo,
                     gif: startMessage.gif,
@@ -44,22 +40,44 @@ export async function generateMessage(type, msg, user) {
     return response;
 }
 
-export function exportWebAppURL(text) {
-    const pattern = /\[webApp:(.*?)\]/;
-    const match = text.match(pattern);
-    const webAppValue = match ? match[1] : null;
-    const textWithoutWebapp = text.replace(pattern, "").trim();
 
-    return { text: textWithoutWebapp, url: webAppValue.replace(" ") };
+export function exportKeyboard(inputTextString) {
+    const pattern = /\[keyboard\((.*?)\)\((.*?)\): (.*?)\]/g;
+    const matches = [...inputTextString.matchAll(pattern)];
+
+    if (!matches.length) {
+        return {
+            text: inputTextString,
+            buttons: null
+        };
+    }
+
+    const cleanedText = inputTextString.replace(pattern, '').trim();
+
+    const buttons = matches.map(match => ({
+        buttonValue: match[3].trim(),
+        buttonName: match[1].trim(),
+        buttonType: match[2].trim()
+    }));
+
+    return {
+        text: cleanedText,
+        buttons
+    };
 }
 
-export function exportChannelURL(text) {
-    const pattern = /\[channel:(.*?)\]/;
-    const match = text.match(pattern);
-    const channelValue = match ? match[1] : null;
-    const textWithoutChannel = text.replace(pattern, "").trim();
+export function exportEntities(text, entities) {
+    let result = text;
 
-    return { text: textWithoutChannel, url: channelValue.replace(" ") };
+    for (let i = entities.length - 1; i >= 0; i--) {
+        const { offset, length, url } = entities[i];
+        const part = text.slice(offset, offset + length);
+        const link = `<a href="${url}">${part}</a>`;
+
+        result = result.slice(0, offset) + link + result.slice(offset + length);
+    }
+
+    return result;
 }
 
 export function exportScheduledTime(text) {
@@ -87,24 +105,25 @@ export async function mailingAll(users, adminChatId, bot) {
             where: { messageType: "mailingAll" },
         });
 
-        const keyboard = generateUserKeyboard(
-            mailingAllMessage.webAppURL,
-            mailingAllMessage.channelURL
-
-        );
+        const keyboard = generateUserKeyboard(mailingAllMessage?.keyboards);
 
         users.forEach((user) => {
             try {
+
                 if (mailingAllMessage.messageFormat == "photo") {
                     bot.sendPhoto(user.chatId, mailingAllMessage?.photo, {
-                        caption: mailingAllMessage.caption,
+                        caption: mailingAllMessage.text,
                         reply_markup: keyboard,
+                        parse_mode: "html"
                     });
                 } else if (mailingAllMessage.messageFormat == "gif") {
                     bot.sendAnimation(user.chatId, mailingAllMessage?.gif, {
-                        caption: mailingAllMessage.caption,
+                        caption: mailingAllMessage.text,
                         reply_markup: keyboard,
+                        parse_mode: "html"
                     });
+                } else if (mailingAllMessage.messageFormat == "text") {
+                    bot.sendMessage(user.chatId, mailingAllMessage?.text, { reply_markup: keyboard, parse_mode: "html" })
                 } else {
                     throw Error("Не известный формат сообщения!")
                 }
@@ -112,7 +131,7 @@ export async function mailingAll(users, adminChatId, bot) {
             } catch (error) {
                 bot.sendMessage(
                     adminChatId,
-                    `Не удалось отправить сообщения для пользователя: ${user.username} `
+                    `Не удалось отправить сообщения для пользователя (${user.name}) ошибка: ${error.message} `
                 );
             }
         });
@@ -133,23 +152,28 @@ export async function checkTasksForMailing(bot) {
         try {
             const users = await User.findAll();
 
-            const keyboard = generateUserKeyboard(
-                task.webAppURL,
-                task.channelURL
-            );
+            const keyboard = generateUserKeyboard(task?.keyboards);
 
             users.forEach((user) => {
                 if (task.messageFormat == "photo") {
                     bot.sendPhoto(user.chatId, task?.photo, {
-                        caption: task.caption,
+                        caption: task.text,
                         reply_markup: keyboard,
+                        parse_mode: "html"
                     });
                 } else if (task.messageFormat == "gif") {
                     bot.sendAnimation(user.chatId, task?.gif, {
-                        caption: task.caption,
+                        caption: task.text,
                         reply_markup: keyboard,
+                        parse_mode: "html"
                     });
-                } else {
+                } else if (task.messageFormat == "text") {
+                    bot.sendMessage(user.chatId, task?.text, {
+                        reply_markup: keyboard,
+                        parse_mode: "html"
+                    })
+                }
+                else {
                     throw Error("Не известный формат сообщения!")
                 }
             });

@@ -2,13 +2,13 @@ import MailingTask from "../database/models/MailingTask.model.js";
 import Message from "../database/models/Message.model.js";
 import User from "../database/models/User.model.js";
 import {
-    addMailingScheduleAdminKeyboard,
     changeMessagesAdminKeyboard,
+    mailingScheduleAdminKeyboard,
 } from "../keyboards/admin.keyboard.js";
 import {
-    exportChannelURL,
+    exportEntities,
+    exportKeyboard,
     exportScheduledTime,
-    exportWebAppURL,
     mailingAll,
 } from "../utils.js";
 
@@ -21,35 +21,29 @@ export async function callbackQuery(bot, msg) {
 
         const photo = msg?.photo;
 
-        if (!animation && !photo) {
-            throw Error("Вы не передали GIF или PHOTO!");
-        }
+        let text = msg?.caption || msg?.text
 
-        const caption = msg?.caption;
-
-        if (!caption) {
+        if (!text) {
             throw Error("Вы не передали Текст!");
         }
 
-        const webAppURL = exportWebAppURL(caption);
+        const keyboards = exportKeyboard(text)
 
-        if (!webAppURL.url) {
-            throw Error("Вы не передали webApp ссылку!");
+        if (!keyboards) {
+            throw Error("Вы не передали Клавиатуру!");
         }
 
-        const channelURL = exportChannelURL(webAppURL.text);
-
-        if (!channelURL.url) {
-            throw Error("Вы не передали ссылку на канал!");
+        if (!keyboards.text) {
+            throw Error("Вы не передали Текст!");
         }
+
 
         const result = {
             format: null,
             photo: null,
             gif: null,
-            caption: channelURL.text,
-            webAppURL: webAppURL.url,
-            channelURL: channelURL.url
+            text: keyboards.text,
+            keyboards: keyboards.buttons
         };
 
         if (photo) {
@@ -60,12 +54,18 @@ export async function callbackQuery(bot, msg) {
             const animationId = msg?.animation?.file_id;
             result.gif = animationId;
             result.format = "gif"
+        } else if (text) {
+            result.format = "text"
         } else {
             throw Error("Не известный формат файла!");
         }
 
         return result
     }
+
+
+    // bot.on("message", inputMessageValidation)
+    // return
 
     switch (data) {
         case "mailing_all":
@@ -87,22 +87,20 @@ export async function callbackQuery(bot, msg) {
                         await Message.create({
                             messageType: "mailingAll",
                             messageFormat: validData.format,
-                            webAppURL: validData.webAppURL,
-                            channelURL: validData.channelURL,
+                            keyboards: validData.keyboards,
                             gif: validData.gif,
                             photo: validData.photo,
-                            caption: validData.caption,
+                            text: validData.text,
                         });
 
 
                     } else {
                         mailingAllMessages.update({
                             messageFormat: validData.format,
-                            webAppURL: validData.webAppURL,
-                            channelURL: validData.channelURL,
+                            keyboards: validData.keyboards,
                             gif: validData.gif,
                             photo: validData.photo,
-                            caption: validData.caption,
+                            text: validData.text,
                         });
                     }
 
@@ -120,7 +118,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[webApp:ссылку на webApp]\n[channel:ссылку на канал]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]"
             );
             // bot.sendAnimation(
             //     chatId,
@@ -158,20 +156,18 @@ export async function callbackQuery(bot, msg) {
                         await Message.create({
                             messageType: "start",
                             messageFormat: validData.format,
-                            webAppURL: validData.webAppURL,
-                            channelURL: validData.channelURL,
+                            keyboards: validData.keyboards,
                             gif: validData.gif,
                             photo: validData.photo,
-                            caption: validData.caption,
+                            text: validData.text,
                         });
                     } else {
                         startMessage.update({
                             messageFormat: validData.format,
-                            webAppURL: validData.webAppURL,
-                            channelURL: validData.channelURL,
+                            keyboards: validData.keyboards,
                             gif: validData.gif,
                             photo: validData.photo,
-                            caption: validData.caption,
+                            text: validData.text,
                         });
                     }
 
@@ -187,7 +183,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[webApp:ссылку на webApp]\n[channel:ссылку на канал]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]"
             );
 
             bot.on("message", changeStartMessageInput);
@@ -197,14 +193,14 @@ export async function callbackQuery(bot, msg) {
         case "mailing_schedule":
             let mailingTasks = await MailingTask.findAll();
             if (mailingTasks.length) {
-                mailingTasks = mailingTasks.map((task) => `ID: ${task.id}`);
+                mailingTasks = mailingTasks.map((task) => `ID: ${task.id} Время: ${task.scheduledTime}`);
                 mailingTasks = mailingTasks.join("\n");
             } else {
                 mailingTasks = "0 задач";
             }
 
             bot.sendMessage(chatId, `Статус:\n${mailingTasks}`, {
-                reply_markup: addMailingScheduleAdminKeyboard,
+                reply_markup: mailingScheduleAdminKeyboard,
             });
             break;
 
@@ -216,8 +212,9 @@ export async function callbackQuery(bot, msg) {
                     }
 
                     const validData = inputMessageValidation(msg)
+                    console.log(validData)
 
-                    const scheduledTime = exportScheduledTime(validData.caption);
+                    const scheduledTime = exportScheduledTime(validData.text);
 
                     if (!scheduledTime) {
                         throw Error("Вы не передали scheduledTime!");
@@ -227,11 +224,10 @@ export async function callbackQuery(bot, msg) {
 
                     const newTask = await MailingTask.create({
                         messageFormat: validData.format,
-                        webAppURL: validData.webAppURL,
-                        channelURL: validData.channelURL,
+                        keyboards: validData.keyboards,
                         gif: validData.gif,
                         photo: validData.photo,
-                        caption: scheduledTime.text,
+                        text: scheduledTime.text,
                         scheduledTime: scheduledTime.time,
                     });
 
@@ -247,12 +243,65 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[webApp:ссылку на webApp]\n[channel:ссылку на канал]\n[scheduledTime:2024-08-23 14:30:00]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]\n[scheduledTime:2024-08-23 14:30:00]"
             );
 
             bot.on("message", addMailingScheduleInput);
 
             break;
+
+        case "delete_mailing_schedule":
+            async function deleteMailingScheduleInput(msg) {
+                try {
+                    if (msg.from.id != chatId) {
+                        return;
+                    }
+
+                    const text = msg?.text
+
+                    if (!text){
+                        throw Error("Текст не передан")
+                    }
+
+                    const id = Number(text)
+
+                    if (!id){
+                        throw Error("Вы уверены что передали число?")
+                    }
+
+                    try {
+                        console.log(id)
+                        const findMailingTask = await MailingTask.findOne({where: {id}})
+
+                        console.log(findMailingTask)
+                        if(!findMailingTask){
+                            throw Error("Не удалось найти такой задачи.")
+                        }
+
+                        await findMailingTask.destroy()
+                        await findMailingTask.save()
+
+                        bot.sendMessage(chatId, "Успешно удалено!")
+
+                    } catch (error) {
+                        throw Error(`Ошибка при попытке поиска в базе данных: ${error}`)
+                    }
+
+                    bot.removeListener("message", deleteMailingScheduleInput);
+
+                } catch (error) {
+                    bot.sendMessage(chatId, error.message);
+                    bot.removeListener("message", deleteMailingScheduleInput);
+                }
+            }
+
+            await bot.sendMessage(
+                chatId,
+                "Отправьте в след.\nID задачи которую вы хотите удалить"
+            );
+
+            bot.on("message", deleteMailingScheduleInput);
+            break
 
         default:
             break;

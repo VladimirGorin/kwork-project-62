@@ -11,12 +11,15 @@ export const startAdminKeyboard = {
     ],
 };
 
-export const addMailingScheduleAdminKeyboard = {
+export const mailingScheduleAdminKeyboard = {
     inline_keyboard: [
         [
             {
                 text: "Добавить рассылку по дате",
                 callback_data: "add_mailing_schedule",
+            },{
+                text: "Удалить рассылку",
+                callback_data: "delete_mailing_schedule",
             },
         ],
     ],

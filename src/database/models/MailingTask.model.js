@@ -11,7 +11,7 @@ const MailingTask = sequelize.define("mailingTask", {
   messageFormat: { type: DataTypes.STRING },
   gif: { type: DataTypes.STRING },
   photo: { type: DataTypes.STRING },
-  caption: { type: DataTypes.STRING },
+  text: { type: DataTypes.STRING },
   webAppURL: { type: DataTypes.STRING },
   channelURL: { type: DataTypes.STRING },
   scheduledTime: { type: DataTypes.STRING },

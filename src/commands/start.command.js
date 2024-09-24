@@ -23,19 +23,28 @@ export default async (bot, msg) => {
         const message = await generateMessage("start", msg, user);
 
         if (message?.type) {
-            if (message?.type == "animation") {
+            if (message?.type == "gif") {
                 if (!message?.gif) {
-                    bot.sendMessage(chatId, message?.text);
+                    bot.sendMessage(chatId, message?.text, {
+                        parse_mode: "html"
+                    });
                 } else {
                     bot.sendAnimation(chatId, message?.gif, {
                         caption: message?.text,
                         reply_markup: message?.keyboard,
+                        parse_mode: "html"
                     });
                 }
             } else if (message?.type == "photo") {
-                bot.sendPhoto(chatId, message?.photo, {caption: message?.text, reply_markup: message?.keyboard});
-            } else if (message?.type == "message") {
-                bot.sendMessage(chatId, message?.text);
+                bot.sendPhoto(chatId, message?.photo, {
+                    caption: message?.text, reply_markup: message?.keyboard,
+                    parse_mode: "html"
+                });
+            } else if (message?.type == "text") {
+                bot.sendMessage(chatId, message?.text, {
+                    reply_markup: message?.keyboard,
+                    parse_mode: "html"
+                });
             } else {
                 bot.sendMessage(chatId, "Не известный тип generateMessage!");
             }
