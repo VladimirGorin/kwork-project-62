@@ -6,6 +6,11 @@ export function generateWebAppUserKeyboard(url) {
 }
 
 export function generateUserKeyboard(keyboards) {
+
+    if(!keyboards){
+        return {inline_keyboard: []}
+    }
+
     const items = keyboards
         .map(keyboard => {
             if (keyboard && keyboard.buttonValue && keyboard.buttonName && keyboard.buttonType) {

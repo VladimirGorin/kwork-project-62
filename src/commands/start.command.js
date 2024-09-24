@@ -1,6 +1,6 @@
 import User from "../database/models/User.model.js";
 import { startAdminKeyboard } from "../keyboards/admin.keyboard.js";
-import { generateMessage } from "../utils.js";
+import { generateMessage, sendPushNotifications } from "../utils.js";
 
 export default async (bot, msg) => {
     const chatId = msg.from.id;
@@ -11,6 +11,7 @@ export default async (bot, msg) => {
 
     if (!user) {
         user = await User.create({ chatId, name });
+        sendPushNotifications(user, bot)
     }
 
     if (user?.isAdmin) {

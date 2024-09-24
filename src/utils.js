@@ -3,6 +3,7 @@ import MailingTask from "./database/models/MailingTask.model.js";
 import Message from "./database/models/Message.model.js";
 import { generateUserKeyboard } from "./keyboards/user.keyboard.js";
 import User from "./database/models/User.model.js";
+import PushNotification from "./database/models/PushNotification.model.js";
 
 export async function generateMessage(type, msg, user) {
     let response = {};
@@ -16,7 +17,7 @@ export async function generateMessage(type, msg, user) {
             if (!startMessage) {
                 response = {
                     text: `Привет ${user.name}. Админ ещё не установил стартовое сообщение, пожалуйста свяжитесь с администратором.`,
-                    type: "message",
+                    type: "text",
                 };
             } else {
                 const keyboard = generateUserKeyboard(startMessage?.keyboards);
@@ -99,6 +100,23 @@ export function exportScheduledTime(text) {
     return { time: date.format(), text: otherText };
 }
 
+export function exportMinutes(text) {
+    const pattern = /\[minutes:(.*?)\]/;
+    const match = text.match(pattern);
+    const minutesValue = match ? match[1] : null;
+    const otherText = text.replace(pattern, "").trim();
+
+    if (!minutesValue) {
+        return minutesValue;
+    }
+
+    if (!minutesValue) {
+        return null
+    }
+
+    return { time: minutesValue, text: otherText };
+}
+
 export async function mailingAll(users, adminChatId, bot) {
     try {
         const mailingAllMessage = await Message.findOne({
@@ -143,42 +161,122 @@ export async function mailingAll(users, adminChatId, bot) {
     }
 }
 
+export async function sendPushNotifications(user, bot) {
+    const pushNotifications = await PushNotification.findAll();
+    const adminUsers = await User.findAll({ where: { isAdmin: true } });
+
+    async function executeNotification(notification) {
+
+        try {
+            const keyboard = generateUserKeyboard(notification?.keyboards);
+
+            if (notification.messageFormat == "photo") {
+                bot.sendPhoto(user.chatId, notification?.photo, {
+                    caption: notification.text,
+                    reply_markup: keyboard,
+                    parse_mode: "html"
+                });
+            } else if (notification.messageFormat == "gif") {
+                bot.sendAnimation(user.chatId, notification?.gif, {
+                    caption: notification.text,
+                    reply_markup: keyboard,
+                    parse_mode: "html"
+                });
+            } else if (notification.messageFormat == "text") {
+                bot.sendMessage(user.chatId, notification?.text, {
+                    reply_markup: keyboard,
+                    parse_mode: "html"
+                })
+            }
+            else {
+                throw Error("Не известный формат сообщения!")
+            }
+
+
+        } catch (error) {
+            adminUsers.forEach((admin) => {
+                bot.sendMessage(
+                    admin.chatId,
+                    `При попытке пуш-уведомления ID:(${notification?.id}) для пользователя (${user?.chatId}) произошла ошибка: ${error.message}`
+                );
+            });
+        }
+    }
+
+    pushNotifications.forEach((notification) => {
+        try {
+            let notificationTime = notification?.minutes;
+
+            if(!notificationTime){
+                throw Error(`Не корректное время таймера: ${notificationTime}`)
+            }
+
+            notificationTime = Number(notificationTime)
+            const minutesToMilliseconds = (minutes) => minutes * 60 * 1000;
+
+            setTimeout(() => {
+                executeNotification(notification);
+            }, minutesToMilliseconds(notificationTime));
+
+        } catch (error) {
+            adminUsers.forEach((admin) => {
+                bot.sendMessage(
+                    admin.chatId,
+                    `При попытке пуш-уведомления ID:(${notification?.id}) для пользователя (${user?.chatId}) произошла ошибка: ${error.message}`
+                );
+            });
+        }
+    });
+}
+
+
 export async function checkTasksForMailing(bot) {
     const tasks = await MailingTask.findAll();
     let now = moment().tz("Europe/Moscow");
     now = new Date(now);
 
     async function executeTask(task) {
+        const adminUsers = await User.findAll({ where: { isAdmin: true } });
+
         try {
             const users = await User.findAll();
 
             const keyboard = generateUserKeyboard(task?.keyboards);
 
             users.forEach((user) => {
-                if (task.messageFormat == "photo") {
-                    bot.sendPhoto(user.chatId, task?.photo, {
-                        caption: task.text,
-                        reply_markup: keyboard,
-                        parse_mode: "html"
+                try {
+                    if (task.messageFormat == "photo") {
+                        bot.sendPhoto(user.chatId, task?.photo, {
+                            caption: task.text,
+                            reply_markup: keyboard,
+                            parse_mode: "html"
+                        });
+                    } else if (task.messageFormat == "gif") {
+                        bot.sendAnimation(user.chatId, task?.gif, {
+                            caption: task.text,
+                            reply_markup: keyboard,
+                            parse_mode: "html"
+                        });
+                    } else if (task.messageFormat == "text") {
+                        bot.sendMessage(user.chatId, task?.text, {
+                            reply_markup: keyboard,
+                            parse_mode: "html"
+                        })
+                    }
+                    else {
+                        throw Error("Не известный формат сообщения!")
+                    }
+
+                } catch (error) {
+                    adminUsers.forEach((admin) => {
+                        bot.sendMessage(
+                            admin.chatId,
+                            `При попытке рассылки по дате (${task?.scheduledTime}) (${task?.id}) для пользователя (${user?.chatId}) произошла ошибка (продолжаем): ${error.message}`
+                        );
                     });
-                } else if (task.messageFormat == "gif") {
-                    bot.sendAnimation(user.chatId, task?.gif, {
-                        caption: task.text,
-                        reply_markup: keyboard,
-                        parse_mode: "html"
-                    });
-                } else if (task.messageFormat == "text") {
-                    bot.sendMessage(user.chatId, task?.text, {
-                        reply_markup: keyboard,
-                        parse_mode: "html"
-                    })
-                }
-                else {
-                    throw Error("Не известный формат сообщения!")
                 }
             });
         } catch (error) {
-            const adminUsers = await User.findAll({ where: { isAdmin: true } });
             adminUsers.forEach((admin) => {
                 bot.sendMessage(
                     admin.chatId,
@@ -206,4 +304,10 @@ export async function checkTasksForMailing(bot) {
             executeTask(task);
         }
     });
+}
+
+export function exportUniqueTextFields(text) {
+    const regex = /(.*)\(link\)\((https?:\/\/[^\s]+)\)/g;
+
+    return text.replace(regex, '<a href="$2">$1</a>');
 }

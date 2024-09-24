@@ -1,7 +1,7 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../index.js";
 
-const MailingTask = sequelize.define("mailingTask", {
+const PushNotification = sequelize.define("pushNotification", {
   id: {
     type: DataTypes.BIGINT,
     primaryKey: true,
@@ -14,8 +14,8 @@ const MailingTask = sequelize.define("mailingTask", {
   text: { type: DataTypes.STRING },
   webAppURL: { type: DataTypes.STRING },
   channelURL: { type: DataTypes.STRING },
-  scheduledTime: { type: DataTypes.STRING },
+  minutes: { type: DataTypes.STRING },
   keyboards: { type: DataTypes.JSONB}
 });
 
-export default MailingTask;
+export default PushNotification;
