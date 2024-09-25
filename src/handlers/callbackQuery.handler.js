@@ -399,11 +399,11 @@ export async function callbackQuery(bot, msg) {
                         throw Error(`Ошибка при попытке поиска в базе данных: ${error}`)
                     }
 
-                    bot.removeListener("message", deleteMailingScheduleInput);
+                    bot.removeListener("message", deletePushNotificationInput);
 
                 } catch (error) {
                     bot.sendMessage(chatId, error.message);
-                    bot.removeListener("message", deleteMailingScheduleInput);
+                    bot.removeListener("message", deletePushNotificationInput);
                 }
             }
 
