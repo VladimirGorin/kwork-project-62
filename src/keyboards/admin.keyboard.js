@@ -18,7 +18,7 @@ export const mailingScheduleAdminKeyboard = {
             {
                 text: "Добавить рассылку по дате",
                 callback_data: "add_mailing_schedule",
-            },{
+            }, {
                 text: "Удалить рассылку",
                 callback_data: "delete_mailing_schedule",
             },
@@ -33,7 +33,12 @@ export const pushNotificationAdminKeyboard = {
                 text: "Добавить пуш уведомления",
                 callback_data: "add_push_notification",
             }
-        ],
+        ], [
+            {
+                text: "Удалить пуш уведомления",
+                callback_data: "delete_push_notification",
+            }
+        ]
     ],
 };
 

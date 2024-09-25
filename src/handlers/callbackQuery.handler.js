@@ -364,6 +364,56 @@ export async function callbackQuery(bot, msg) {
 
             break;
 
+        case "delete_push_notification":
+            async function deletePushNotificationInput(msg) {
+                try {
+                    if (msg.from.id != chatId) {
+                        return;
+                    }
+
+                    const text = msg?.text
+
+                    if (!text) {
+                        throw Error("Текст не передан")
+                    }
+
+                    const id = Number(text)
+
+                    if (!id) {
+                        throw Error("Вы уверены что передали число?")
+                    }
+
+                    try {
+                        const findPushNotification = await PushNotification.findOne({ where: { id } })
+
+                        if (!findPushNotification) {
+                            throw Error("Не удалось найти такого пуша.")
+                        }
+
+                        await findPushNotification.destroy()
+                        await findPushNotification.save()
+
+                        bot.sendMessage(chatId, "Успешно удалено!")
+
+                    } catch (error) {
+                        throw Error(`Ошибка при попытке поиска в базе данных: ${error}`)
+                    }
+
+                    bot.removeListener("message", deleteMailingScheduleInput);
+
+                } catch (error) {
+                    bot.sendMessage(chatId, error.message);
+                    bot.removeListener("message", deleteMailingScheduleInput);
+                }
+            }
+
+            await bot.sendMessage(
+                chatId,
+                "Отправьте в след.\nID пуша которого вы хотите удалить"
+            );
+
+            bot.on("message", deletePushNotificationInput);
+            break
 
         default:
             break;
