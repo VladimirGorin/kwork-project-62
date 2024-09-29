@@ -8,11 +8,11 @@ const Message = sequelize.define("message", {
     unique: true,
     autoIncrement: true,
   },
-  messageFormat: { type: DataTypes.STRING },
-  messageType: { type: DataTypes.STRING },
-  gif: { type: DataTypes.STRING },
-  photo: {type: DataTypes.STRING },
-  text: { type: DataTypes.STRING },
+  messageFormat: { type: DataTypes.TEXT },
+  messageType: { type: DataTypes.TEXT },
+  gif: { type: DataTypes.TEXT },
+  photo: {type: DataTypes.TEXT },
+  text: { type: DataTypes.TEXT },
   keyboards: { type: DataTypes.JSONB}
 });
 

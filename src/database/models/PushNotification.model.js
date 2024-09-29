@@ -8,13 +8,13 @@ const PushNotification = sequelize.define("pushNotification", {
     unique: true,
     autoIncrement: true,
   },
-  messageFormat: { type: DataTypes.STRING },
-  gif: { type: DataTypes.STRING },
-  photo: { type: DataTypes.STRING },
-  text: { type: DataTypes.STRING },
-  webAppURL: { type: DataTypes.STRING },
-  channelURL: { type: DataTypes.STRING },
-  minutes: { type: DataTypes.STRING },
+  messageFormat: { type: DataTypes.TEXT },
+  gif: { type: DataTypes.TEXT },
+  photo: { type: DataTypes.TEXT },
+  text: { type: DataTypes.TEXT },
+  webAppURL: { type: DataTypes.TEXT },
+  channelURL: { type: DataTypes.TEXT },
+  minutes: { type: DataTypes.TEXT },
   keyboards: { type: DataTypes.JSONB}
 });
 

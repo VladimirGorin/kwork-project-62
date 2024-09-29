@@ -307,7 +307,7 @@ export async function checkTasksForMailing(bot) {
 }
 
 export function exportUniqueTextFields(text) {
-    const regex = /(.*)\(link\)\((https?:\/\/[^\s]+)\)/g;
+    const regex = /\[(.*)\]\(link\)\((https?:\/\/[^\s]+)\)/g;
 
     return text.replace(regex, '<a href="$2">$1</a>');
 }
