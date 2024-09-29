@@ -41,13 +41,13 @@ export async function callbackQuery(bot, msg) {
             throw Error("Вы не передали Текст!");
         }
 
-        const updatedText = exportUniqueTextFields(keyboards.text)
+        // const updatedText = exportUniqueTextFields(keyboards.text)
 
         const result = {
             format: null,
             photo: null,
             gif: null,
-            text: updatedText,
+            text: keyboards.text,
             keyboards: keyboards.buttons
         };
 
@@ -123,7 +123,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n[Ссылку в тексте](link)(https://youtube.com)\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n<a href='https://youtube.com'>Ссылку в тексте</a>\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]"
             );
             // bot.sendAnimation(
             //     chatId,
@@ -188,7 +188,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n[Ссылку в тексте](link)(https://youtube.com)\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n<a href='https://youtube.com'>Ссылку в тексте</a>\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]"
             );
 
             bot.on("message", changeStartMessageInput);
@@ -247,7 +247,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n[Ссылку в тексте](link)(https://youtube.com)\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]\n[scheduledTime:2024-08-23 14:30:00]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n<a href='https://youtube.com'>Ссылку в тексте</a>\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]\n[scheduledTime:2024-08-23 14:30:00]"
             );
 
             bot.on("message", addMailingScheduleInput);
@@ -357,7 +357,7 @@ export async function callbackQuery(bot, msg) {
 
             await bot.sendMessage(
                 chatId,
-                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n[Ссылку в тексте](link)(https://youtube.com)\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]\n[minutes:1]"
+                "Отправьте в след. сообщении данные в формате:\n\n-GIF|Photo\n-Текст\n<a href='https://youtube.com'>Ссылку в тексте</a>\n\n[keyboard(название кнопки)(тип (webApp, link)): значение кнопки]\n[minutes:1]"
             );
 
             bot.on("message", addPushNotificationInput);
