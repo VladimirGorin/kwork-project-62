@@ -3,6 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
+    restart: always
     container_name: mailing_postgres_db
 
     env_file:
